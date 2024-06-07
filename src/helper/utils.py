@@ -11,13 +11,14 @@ from pydantic_core import ValidationError
 
 from configuration.env import settings
 from configuration.logger_config import logger_config
-from error.custom_exceptions import DeadLetterQueueError, MessageDecodeError, MessageValidationError
+from error.custom_exceptions import ManualDLQError, MessageDecodeError, MessageValidationError
 
 from gcp.gcs import GoogleCloudStorage
-from pydantic_model.api_model import CloudStorageEvent, ErrorStage
-from service.logger import LoggerAdapter, configure_logger
+from pydantic_model.api_model import GcsToPubsubEvent, ErrorEnum
+from service.logger import CustomLoggerAdapter, configure_logger
 
-logger = LoggerAdapter(configure_logger(), None)
+logger = CustomLoggerAdapter(configure_logger(), None)
+
 
 def format_pydantic_validation_error_message(pydantic_exception: Sequence) -> str:
     exceptions_list = []
@@ -27,7 +28,8 @@ def format_pydantic_validation_error_message(pydantic_exception: Sequence) -> st
         exceptions_list.append({"parameter": parameter, "reason": message})
     return f"The following request parameters failed validation: {str(exceptions_list)}"
 
-def create_pydantic_validation_error_message(pydantic_exception: str) -> str: 
+
+def create_pydantic_validation_error_message(pydantic_exception: str) -> str:
     exceptions_list = []
     pydantic_exception = pydantic_exception.split("\n")
     pydantic_exception.pop(0)
@@ -43,6 +45,7 @@ def create_pydantic_validation_error_message(pydantic_exception: str) -> str:
     return (
         f"The following request parameters failed validation: {exceptions_list}"
     )
+
 
 def decode_pubsub_message_data(data, strict=True) -> str:
     try:
@@ -63,43 +66,40 @@ def decode_pubsub_message_data(data, strict=True) -> str:
         raise MessageDecodeError(f"Pubsub Message Data Decoding error: {ude}")
 
 
+def encode_pubsub_data_for_local(data) -> str:
+    return base64.b64encode(data.encode("utf-8")).strip()
+
+
 def read_validate_message_data(request):
     try:
-        message_data = CloudStorageEvent(
+        message_data = GcsToPubsubEvent(
             **json.loads(decode_pubsub_message_data(request.message.data))
         )
         logger.info(f"Data Decoded {message_data.model_dump()}")
         return message_data
     except json.decoder.JSONDecodeError as jse:
         logger.error(msg=dict(exception=str(jse.msg)))
-        raise DeadLetterQueueError(
-            original_message=logger_config.context.get().get("original_message"),
-            error_description=str(jse.msg),
-            error_stage=ErrorStage.MESSAGE_VALIDATION,
+        raise ManualDLQError(
+            original_request=logger_config.context.get().get("original_request"),
+            error_desc=str(jse.msg),
+            error_stage=ErrorEnum.MESSAGE_VALIDATION,
         )
     except MessageValidationError as mve:
         logger.error(msg=dict(exception=str(mve)))
-        raise DeadLetterQueueError(
-            original_message=logger_config.context.get().get("original_message"),
-            error_description=str(mve),
-            error_stage=ErrorStage.MESSAGE_VALIDATION,
+        raise ManualDLQError(
+            original_request=logger_config.context.get().get("original_request"),
+            error_desc=str(mve),
+            error_stage=ErrorEnum.MESSAGE_VALIDATION,
         )
     except ValidationError as ve:
-        logger.error(logger_config.context.get().get("original_message"))
+        logger.error(logger_config.context.get().get("original_request"))
         validation_exception = create_pydantic_validation_error_message(str(ve))
         logger.error(msg=dict(exception=str(validation_exception)))
-        raise DeadLetterQueueError(
-            original_message=logger_config.context.get().get("original_message"),
-            error_description=validation_exception,
-            error_stage=ErrorStage.MESSAGE_VALIDATION,
+        raise ManualDLQError(
+            original_request=logger_config.context.get().get("original_request"),
+            error_desc=validation_exception,
+            error_stage=ErrorEnum.MESSAGE_VALIDATION,
         )
-
-
-
-def remove_file_extension(gpg_file_extension_string, extension_to_remove= ""):
-    if extension_to_remove in gpg_file_extension_string:
-        return gpg_file_extension_string.replace(f".{extension_to_remove}", "")
-    return gpg_file_extension_string
 
 
 def extract_trace_and_request_type(original_request: Request) -> dict:
@@ -114,44 +114,3 @@ def extract_trace_and_request_type(original_request: Request) -> dict:
 
     ctx_required_fields["requestType"] = original_request.scope["path"]
     return ctx_required_fields
-
-
-def exponential_retry(ExceptionToCheck, num_retries=4, time_to_wait=5, backoff_factor=1.5, logger=None):
-    """Retry calling the decorated function using an exponential backoff.
-    :param ExceptionToCheck: the exception to check. may be a tuple of
-        exceptions to check
-    :type ExceptionToCheck: Exception or tuple
-    :param num_retries: number of times to try before giving up
-    :type num_retries: int
-    :param time_to_wait: initial delay between retries in milliseconds
-    :type time_to_wait: int
-    :param backoff_factor: backoff_factor multiplier e.g. value of 2 will double the delay
-        each retry
-    :type backoff_factor: int
-    :param logger: logger to use. If None, print
-    :type logger: logging.Logger instance
-    """
-
-    def deco_retry(f):
-
-        @wraps(f)
-        def func_retry(*args, **kwargs):
-            deco_num_retries, deco_time_tow_wait = num_retries, time_to_wait
-            while deco_num_retries > 1:
-                try:
-                    return f(*args, **kwargs)
-                except ExceptionToCheck as e:
-                    msg = "%s, Retrying in %s seconds..." % (str(e), deco_time_tow_wait / 1000)
-                    if logger:
-                        logger.warning(msg)
-                    else:
-                        print(msg)
-                    time.sleep(deco_time_tow_wait / 1000)
-                    deco_num_retries -= 1
-                    deco_time_tow_wait *= backoff_factor
-            return f(*args, **kwargs)
-
-        return func_retry  # true decorator
-
-    return deco_retry
-

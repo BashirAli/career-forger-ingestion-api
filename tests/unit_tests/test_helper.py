@@ -1,31 +1,42 @@
 import json
 import os
-from datetime import datetime
 from unittest.mock import Mock, patch
 
 import pytest
 
-from error.custom_exceptions import DeadLetterQueueError, MessageDecodeError
-from pydantic_model.api_model import CloudStorageEvent, Message, PubSubMessage
-from utils.helper import (
+from error.custom_exceptions import ManualDLQError, MessageDecodeError
+from helper.utils import (
     format_pydantic_validation_error_message,
     create_pydantic_validation_error_message,
     decode_pubsub_message_data,
     extract_trace_and_request_type,
     read_validate_message_data,
-    remove_file_extension
+    encode_pubsub_data_for_local
 )
+from pydantic_model.api_model import GcsToPubsubEvent, Message, PubSubMessage
 
 CURRENT_PATH = os.path.dirname(__file__)
 
 
+def test_encode_pubsub_data_for_local():
+    test_data_decoded = {
+        "field_1": "value_1",
+        "field_2": "value_2",
+        "insert_timestamp": "2024-01-01T09:55:47Z",
+    }
+    test_data_encoded = b"eyJmaWVsZF8xIjogInZhbHVlXzEiLCAiZmllbGRfMiI6ICJ2YWx1ZV8yIiwgImluc2VydF90aW1lc3RhbXAiOiAiMjAyNC0wMS0wMVQwOTo1NTo0N1oifQ=="
+
+    encoded_test_data = encode_pubsub_data_for_local(json.dumps(test_data_decoded))
+    assert type(encoded_test_data) is bytes
+    assert encoded_test_data == test_data_encoded
+
 def test_decode_pubsub_message_data():
     test_data_decoded = {
-        "new_mac": "mac_add1",
-        "old_mac": "mac_add2",
-        "insert_timestamp": "2014-12-17T09:55:47Z",
+        "field_1": "value_1",
+        "field_2": "value_2",
+        "insert_timestamp": "2024-01-01T09:55:47Z",
     }
-    test_data_encoded = b"eyJuZXdfbWFjIjogIm1hY19hZGQxIiwgIm9sZF9tYWMiOiAibWFjX2FkZDIiLCAiaW5zZXJ0X3RpbWVzdGFtcCI6ICIyMDE0LTEyLTE3VDA5OjU1OjQ3WiJ9"
+    test_data_encoded = b"eyJmaWVsZF8xIjogInZhbHVlXzEiLCAiZmllbGRfMiI6ICJ2YWx1ZV8yIiwgImluc2VydF90aW1lc3RhbXAiOiAiMjAyNC0wMS0wMVQwOTo1NTo0N1oifQ=="
     decoded_test_data = decode_pubsub_message_data(test_data_encoded)
     assert type(decoded_test_data) is str
     assert type(json.loads(decoded_test_data)) is dict
@@ -34,9 +45,9 @@ def test_decode_pubsub_message_data():
 
 def test_decode_pubsub_message_data_already_decoded():
     test_data = {
-        "new_mac": "mac_add1",
-        "old_mac": "mac_add2",
-        "insert_timestamp": "2014-12-17T09:55:47Z",
+        "field_1": "value_1",
+        "field_2": "value_2",
+        "insert_timestamp": "2024-01-01T09:55:47Z",
     }
     decoded_test_data = decode_pubsub_message_data(test_data)
     assert type(decoded_test_data) is str
@@ -125,7 +136,7 @@ def test_format_pydantic_validation_error_message():
     )
 
 
-@patch("utils.helper.decode_pubsub_message_data")
+@patch("helper.utils.decode_pubsub_message_data")
 def test_read_validate_message_data(mock_decode):
     # Configure the mock objects
     example_data = {"bucket": "test_bucket", "name": "table"}
@@ -144,7 +155,7 @@ def test_read_validate_message_data(mock_decode):
 
     # Assert
     mock_decode.assert_called_with(mock_request.message.data)
-    assert result == CloudStorageEvent(**example_data)
+    assert result == GcsToPubsubEvent(**example_data)
 
 
 def test_read_validate_message_data_json_error():
@@ -157,7 +168,7 @@ def test_read_validate_message_data_json_error():
         )
     )
 
-    with pytest.raises(DeadLetterQueueError):
+    with pytest.raises(ManualDLQError):
         read_validate_message_data(mock_request)
 
 
@@ -171,14 +182,3 @@ def test_extract_trace_and_request_type():
     expected_trace = f"projects/dummy-project/traces/test_trace_id"
     assert result["logging.googleapis.com/trace"] == expected_trace
     assert result["requestType"] == mock_request.scope["path"]
-
-
-def test_remove_file_extension():
-    encrypted_file_extension = "dummy.json.gpg"
-    incorrect_file_extension = "dummy.jsongpg"
-    json_file_extension = "dummy.json"
-
-    assert remove_file_extension(encrypted_file_extension, "gpg") == "dummy.json"
-    assert remove_file_extension(encrypted_file_extension, "json") == "dummy.gpg"
-    assert remove_file_extension(incorrect_file_extension, "gpg") == incorrect_file_extension
-    assert remove_file_extension(json_file_extension, "csv") == json_file_extension

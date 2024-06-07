@@ -38,7 +38,7 @@ class StackdriverJsonFormatter(jsonlogger.JsonFormatter, object):
         return super(StackdriverJsonFormatter, self).process_log_record(log_record)
 
 
-class LoggerAdapter(logging.LoggerAdapter):
+class CustomLoggerAdapter(logging.LoggerAdapter):
     def __init__(self, logger: logging.Logger, extras):
         super().__init__(logger, extras)
         self.ctx = logger_config.context

@@ -1,7 +1,7 @@
 from pydantic_model.api_model import Message
 
 
-class DeadLetterQueueError(Exception):
+class ManualDLQError(Exception):
     """Custom Exception for manual DLQ
 
     Args:
@@ -9,23 +9,23 @@ class DeadLetterQueueError(Exception):
     """
 
     def __init__(
-        self, original_message: Message, error_description: str, error_stage: str
+        self, original_request: Message, error_desc: str, error_stage: str
     ):
-        self.original_message = original_message
-        self.error_description = error_description
+        self.original_request = original_request
+        self.error_desc = error_desc
         self.error_stage = error_stage
 
 
-class SendToReprocessError(Exception):
+class PubsubReprocessError(Exception):
     """Custom exception to reprocess a message
 
     Args:
         Exception ([type]): [description]
     """
 
-    def __init__(self, original_message, error_description, error_stage):
-        self.original_message = original_message
-        self.error_description = error_description
+    def __init__(self, original_request, error_desc, error_stage):
+        self.original_request = original_request
+        self.error_desc = error_desc
         self.error_stage = error_stage
 
 
@@ -48,32 +48,9 @@ class PubsubPublishException(Exception):
     Args:
         Exception ([type]): [description]
     """
-class DatastoreGenericError(Exception):
-    """Custom Exception for generic issues when data fetched from Datastore
-
-    Args:
-        Exception ([type]): [description]
-    """
-
-
-class DatastoreNotFoundException(Exception):
-    """Custom Exception for data not found when fetched from Datastore
-
-        Args:
-            Exception ([type]): [description]
-        """
 
 class ModelValidationError(Exception):
     """Custom Exception for Pydantic Model Validation
-
-    Args:
-        Exception ([type]): [description]
-    """
-
-
-
-class DatastoreMultiResultException(Exception):
-    """Custom Exception for multiple entities fetched from Datastore
 
     Args:
         Exception ([type]): [description]

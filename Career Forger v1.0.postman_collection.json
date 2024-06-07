@@ -1,0 +1,66 @@
+{
+	"info": {
+		"_postman_id": "9ba6542c-7d6d-4602-a823-42aeccb686c3",
+		"name": "Career Forger v1.0",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "22334502"
+	},
+	"item": [
+		{
+			"name": "LOCAL POST",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"message\": {\n        \"data\": {\n            \"kind\": \"storage#object\",\n            \"id\": \"test-bash-bucket/email_test/Re_ Feedback for previous year.eml/1234567890123456\",\n            \"selfLink\": \"dummy_link\",\n            \"name\": \"email_test/Re_ Feedback for previous year.eml\",\n            \"bucket\": \"test-bash-bucket\",\n            \"contentType\": \"text/plain\",\n            \"generation\": \"1234\",\n            \"metageneration\": \"1\",\n            \"timeCreated\": \"2024-01-01T15:01:06.058022+01:00\",\n            \"updated\": \"2024-01-01T15:01:06.058022+01:00\",\n            \"storageClass\": \"STANDARD\",\n            \"timeStorageClassUpdated\": \"2024-01-01T15:01:06.058022+01:00\",\n            \"size\": \"20\",\n            \"md5Hash\": \"hash\",\n            \"mediaLink\": \"dummy_link\",\n            \"crc32c\": \"dummy\",\n            \"etag\": \"dummy_etag\"\n        },\n        \"message_id\": \"test_message_id\",\n        \"publish_time\": \"2023-07-31T15:01:06.058022+01:00\",\n        \"attributes\": {\"attributes\": \"\"}\n    }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8003/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8003",
+					"path": [
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "LOCAL POST DLQ",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"message\": {\n        \"data\": {\n            \"kind\": \"storage#object\",\n            \"id\": \"test-bash-bucket/email_test/file doesnt exist .eml/1234567890123456\",\n            \"selfLink\": \"dummy_link\",\n            \"name\": \"email_test/file doesnt exist .eml\",\n            \"bucket\": \"test-bash-bucket\",\n            \"contentType\": \"text/plain\",\n            \"generation\": \"1234\",\n            \"metageneration\": \"1\",\n            \"timeCreated\": \"2024-01-01T15:01:06.058022+01:00\",\n            \"updated\": \"2024-01-01T15:01:06.058022+01:00\",\n            \"storageClass\": \"STANDARD\",\n            \"timeStorageClassUpdated\": \"2024-01-01T15:01:06.058022+01:00\",\n            \"size\": \"20\",\n            \"md5Hash\": \"hash\",\n            \"mediaLink\": \"dummy_link\",\n            \"crc32c\": \"dummy\",\n            \"etag\": \"dummy_etag\"\n        },\n        \"message_id\": \"test_message_id\",\n        \"publish_time\": \"2023-07-31T15:01:06.058022+01:00\",\n        \"attributes\": {\"attributes\": \"\"}\n    }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8003/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8003",
+					"path": [
+						""
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

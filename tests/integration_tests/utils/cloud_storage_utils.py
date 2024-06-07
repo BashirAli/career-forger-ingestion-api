@@ -26,13 +26,9 @@ class CloudStorageUtils:
     def upload_file_from_buffer(self, bucket: str, file_name: str, string_data) -> None:
         """Uploads a file from a string buffer"""
         bucket = self.client.bucket(bucket)
-        logging.info(f"BUCKET {bucket}")
         blob = bucket.blob(file_name)
-        logging.info(f"BLOB {blob}")
         string_io = io.StringIO(string_data)
-        logging.info(f"STRINGIO {string_io}")
         bytes_io = io.BytesIO(string_io.getvalue().encode())
-        logging.info(f"BYTESIO {bytes_io}")
         blob.upload_from_file(bytes_io, size=len(bytes_io.getvalue()))
 
     def read_file(self, bucket_name: str, source_blob_name: str):

@@ -1,24 +1,23 @@
 version: '3.7'
 services:
-  gcp-cloud-run-template-api-local:
+  career-forger-ingestion-api-local:
     build:
       context: .
       target: dev
       dockerfile: Dockerfile
-#    dns:
-#      - 100.64.0.1 #/etc/resolv.conf
-#      - #IP ADDRESS HERE
-    container_name: gcp-cloud-run-template-api-dev-local
+    dns:
+      - 100.64.0.1 #/etc/resolv.conf
+      - ${IP_ADDRESS}
+    container_name: career-forger-ingestion-api-dev-local
     environment:
-      - GCP_PROJECT_ID=dummy-project
-      - GOOGLE_CLOUD_PROJECT=dummy-project
+      - GCP_PROJECT_ID=${GCP_PROJECT_ID}
+      - GOOGLE_CLOUD_PROJECT=${GCP_PROJECT_ID}
       - GOOGLE_APPLICATION_CREDENTIALS=/home/appuser/.config/gcloud/application_default_credentials.json
       - PORT=8000
       - PYTHONPATH=/home/appuser/src:/home/appuser/tests
       - ENABLE_DOCS=true
       - IS_TEST_ENV=True
-      - TARGET_PROJECT_ID=dummy-project
-      - TARGET_BUCKET=dummy_bucket
+      - SOURCE_BUCKET=career_forger_email_bucket
     ports:
       - "8003:8000"
     volumes:

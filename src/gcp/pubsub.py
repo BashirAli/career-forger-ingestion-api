@@ -6,11 +6,11 @@ from datetime import date, datetime
 from google.cloud import pubsub_v1
 
 from error.custom_exceptions import PubsubPublishException
-from service.logger import LoggerAdapter, configure_logger
+from service.logger import CustomLoggerAdapter, configure_logger
 
 PUBSUB_PUBLISH_TIMEOUT_SEC = 10
 
-logger = LoggerAdapter(configure_logger(), None)
+logger = CustomLoggerAdapter(configure_logger(), None)
 
 
 class PubSubPublisher:
@@ -31,8 +31,8 @@ class PubSubPublisher:
             return int(obj)
         raise TypeError(f"Type {type(obj)} is not serializable")
 
-    def publish(self, data, source_message_uuid, source_publish_time) -> None:
-        logger.info(f"Publishing to DLQ topic: {self._topic}")
+    def publish(self, data, source_message_uuid="", source_publish_time="") -> None:
+        logger.info(f"Publishing to topic: {self._topic}")
         try:
             data_str = json.dumps(data, default=self.json_serial)
             publish_future = self._ps_client.publish(
@@ -43,7 +43,7 @@ class PubSubPublisher:
             )
             message_id = publish_future.result(timeout=PUBSUB_PUBLISH_TIMEOUT_SEC)
             logger.info(
-                f"Message published to DLQ topic with the following id: {message_id}"
+                f"Message published to topic with the following id: {message_id}"
             )
         except futures.TimeoutError as te:
             logger.error(
@@ -52,5 +52,5 @@ class PubSubPublisher:
             )
             raise PubsubPublishException(str(te))
         except Exception as ge:
-            logger.error(f"Unknown exception occured while publishing to DLQ: {ge}")
+            logger.error(f"Unknown exception occurred while publishing: {ge}")
             raise PubsubPublishException(str(ge))

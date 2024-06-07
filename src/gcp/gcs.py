@@ -7,11 +7,11 @@ from google.cloud.exceptions import NotFound
 
 from configuration.env import settings
 from configuration.logger_config import logger_config
-from error.custom_exceptions import DeadLetterQueueError, SendToReprocessError
-from pydantic_model.api_model import ErrorStage
-from service.logger import LoggerAdapter
+from error.custom_exceptions import ManualDLQError, PubsubReprocessError
+from pydantic_model.api_model import ErrorEnum
+from service.logger import CustomLoggerAdapter
 
-logger = LoggerAdapter(logging.getLogger(__name__), None)
+logger = CustomLoggerAdapter(logging.getLogger(__name__), None)
 
 
 class GoogleCloudStorage:
@@ -47,19 +47,19 @@ class GoogleCloudStorage:
         except NotFound as e:
             error_value = f"Failed to read file from google cloud storage: {e}"
             logger.error(msg=error_value)
-            raise DeadLetterQueueError(
-                original_message=logger_config.context.get().get("original_message"),
-                error_description=error_value,
-                error_stage=ErrorStage.FILE_NOT_FOUND,
+            raise ManualDLQError(
+                original_request=logger_config.context.get().get("original_request"),
+                error_desc=error_value,
+                error_stage=ErrorEnum.FILE_NOT_FOUND,
             )
 
         except (GoogleAPIError, Exception) as e:
             error_value = f"Failed to read file from google cloud storage: {e}"
             logger.error(msg=error_value)
-            raise SendToReprocessError(
-                original_message=logger_config.context.get().get("original_message"),
-                error_description=error_value,
-                error_stage=ErrorStage.GOOGLE_API_ERROR,
+            raise PubsubReprocessError(
+                original_request=logger_config.context.get().get("original_request"),
+                error_desc=error_value,
+                error_stage=ErrorEnum.GOOGLE_API_ERROR,
             )
 
         return file_as_bytes
@@ -90,18 +90,18 @@ class GoogleCloudStorage:
         except NotFound as e:
             error_value = f"Failed to upload to GCS bucket: {e}"
             logger.error(msg=error_value)
-            raise DeadLetterQueueError(
-                original_message=logger_config.context.get().get("original_message"),
-                error_description=error_value,
-                error_stage=ErrorStage.UPLOAD_TO_GCS,
+            raise ManualDLQError(
+                original_request=logger_config.context.get().get("original_request"),
+                error_desc=error_value,
+                error_stage=ErrorEnum.PUSH_TO_PUBSUB,
             )
         except (GoogleAPIError, Exception) as e:
             error_value = f"Failed to upload to GCS bucket - {target_bucket_name}: {e}"
             logger.error(msg=error_value)
-            logger.error(msg=logger_config.context.get().get("original_message"))
+            logger.error(msg=logger_config.context.get().get("original_request"))
 
-            raise SendToReprocessError(
-                original_message=logger_config.context.get().get("original_message"),
-                error_description=error_value,
-                error_stage=ErrorStage.GOOGLE_API_ERROR,
+            raise PubsubReprocessError(
+                original_request=logger_config.context.get().get("original_request"),
+                error_desc=error_value,
+                error_stage=ErrorEnum.GOOGLE_API_ERROR,
             )
