@@ -1,33 +1,26 @@
 import datetime
+import logging
 from unittest.mock import MagicMock, patch
 import json
-
+from core.email_parser import EmailParser
 import pytest
-from conftest import DESTINATION_BLOB_NAME
+from conftest import DEST_BLOB_NAME
 from configuration.env import settings
+from api.data.gcs_to_pubsub_cases import valid_response
+parser = EmailParser()
 
 
 def test_read_from_emulator(gcs_utils, upload_test_file):
     # read the test file sent to test bucket
     input_file_from_emulator = gcs_utils.read_file(
-        bucket_name=settings.target_bucket,
-        source_blob_name=DESTINATION_BLOB_NAME,
+        bucket_name=settings.email_bucket,
+        source_blob_name=DEST_BLOB_NAME,
     )
-    gcs_utils.wipe_bucket(settings.target_bucket)
-    assert json.loads(input_file_from_emulator) == [
- {
-   "Name": "John Doe",
-   "Age": 30,
-   "Country": "United States"
- },
- {
-   "Name": "Jane Doe",
-   "Age": 25,
-   "Country": "Canada"
- },
- {
-   "Name": "Peter Smith",
-   "Age": 40,
-   "Country": "United Kingdom"
- }
-]
+
+    formatted_email = parser.parse_email(gcs_email_as_bytes=input_file_from_emulator)
+
+    assert all(key in ["date_sent", "sender", "recipient", "title", "content_type", "content"] for key in
+               formatted_email.keys())
+    assert all(value not in ("", None) for value in formatted_email.values())
+
+    assert formatted_email == valid_response

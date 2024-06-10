@@ -4,7 +4,7 @@ import pytest
 from google.api_core.exceptions import GoogleAPIError
 from google.cloud.exceptions import NotFound
 
-from error.custom_exceptions import DeadLetterQueueError, SendToReprocessError
+from error.custom_exceptions import ManualDLQError, PubsubReprocessError
 from gcp.gcs import GoogleCloudStorage
 
 bucket_name = "test-bucket"
@@ -36,19 +36,19 @@ def test_read_gcs_file_to_bytes_failures():
     # Test NotFound Exception
     blob_mock.download_as_bytes.side_effect = NotFound("Testing NotFound")
 
-    with pytest.raises(DeadLetterQueueError):
+    with pytest.raises(ManualDLQError):
         gcs.read_gcs_file_to_bytes(bucket_name, source_blob_name)
 
     # Test GoogleAPIError Exception
     blob_mock.download_as_bytes.side_effect = GoogleAPIError("Testing GoogleAPIError")
 
-    with pytest.raises(SendToReprocessError):
+    with pytest.raises(PubsubReprocessError):
         gcs.read_gcs_file_to_bytes(bucket_name, source_blob_name)
 
     # Test General Exception
     blob_mock.download_as_bytes.side_effect = Exception("Testing Generic Exception")
 
-    with pytest.raises(SendToReprocessError):
+    with pytest.raises(PubsubReprocessError):
         gcs.read_gcs_file_to_bytes(bucket_name, source_blob_name)
 
 
@@ -69,7 +69,7 @@ def test_upload_stringio_to_gcs_success(string_io, bytes_io):
 def test_upload_stringio_to_gcs_failure():
     blob_mock.upload_from_file.side_effect = Exception("Failed to upload to GCS bucket")
 
-    with pytest.raises(SendToReprocessError):
+    with pytest.raises(PubsubReprocessError):
         gcs.upload_stringio_to_gcs(bucket_name, destination_blob_name, string_data)
 
 

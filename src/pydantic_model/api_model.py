@@ -7,13 +7,13 @@ from pydantic import BaseModel, Field
 from configuration.env import settings
 
 
-class ErrorStage(str, Enum):
+class ErrorEnum(str, Enum):
     MESSAGE_VALIDATION = "MESSAGE_VALIDATION"
     FILE_NOT_FOUND = "FILE_NOT_FOUND"
-    GOOGLE_API_ERROR = "GOOGLE_APR_ERROR"
-    ENCRYPTION = "ENCRYPTION_ERROR"
+    GOOGLE_API_ERROR = "GOOGLE_API_ERROR"
     INPUT_FILE_NAME = "INPUT_FILE_NAME_ERROR"
-    UPLOAD_TO_GCS = "UPLOAD_TO_GCS"
+    EMAIL_PARSE = "PARSING_EMAIL_ERROR"
+    PUSH_TO_PUBSUB = "PUSH_TO_PUBSUB"
     SENDING_TO_DLQ = "SENDING_TO_DLQ"
 
 
@@ -29,7 +29,7 @@ class LogStatus(str, Enum):
     RETRY = "Retry"
 
 
-class EncryptorLog(BaseModel):
+class StatusLog(BaseModel):
     """Log Message for API Status"""
     project_id: str = settings.gcp_project_id
     message_id: Optional[str] = None
@@ -37,13 +37,13 @@ class EncryptorLog(BaseModel):
     source_bucket_name: Optional[str] = None
     destination_bucket_name: Optional[str] = None
     error_stage: str = None
-    error_description: str = None
+    error_desc: str = None
     response_status_code: str
     log_timestamp: str
     log_type: str = "ENCRYPTOR_LOG"
 
 
-class CloudStorageEvent(BaseModel):
+class GcsToPubsubEvent(BaseModel):
     kind: Optional[str] = Field(None, description="kind of object received")
     id: Optional[str] = Field(None, description="full path and id of file received")
     selfLink: Optional[str] = Field(None, description="link to the file received")
@@ -74,27 +74,3 @@ class PubSubMessage(BaseModel):
 
 class Message(BaseModel):
     message: PubSubMessage
-
-
-
-class GCPTemplateResponse(BaseModel):
-    response_message: Optional[str] = Field(None,
-                                 description='Response message built',
-                                 example=''
-    )
-
-
-class RequestBody(BaseModel):
-    message_id: Optional[str] = Field(
-        None,
-        description='',
-        example='',
-    )
-    message: Optional[str] = Field(
-        None,
-        description='',
-        example='',
-    )
-
-class GCPTemplateRequest(BaseModel):
-    data: Optional[RequestBody] = None
