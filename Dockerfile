@@ -12,7 +12,6 @@ ENV PYTHONUNBUFFERED True
 # Don't try to write .pyc files on the import of source modules
 ENV PYTHONDONTWRITEBYTECODE True
 RUN poetry config virtualenvs.create true
-RUN poetry install
 
 # Note: The above can be a reusable parent image + security scanned, then imported below
 
