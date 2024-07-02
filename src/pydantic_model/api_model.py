@@ -35,12 +35,10 @@ class StatusLog(BaseModel):
     message_id: Optional[str] = None
     status: LogStatus
     source_bucket_name: Optional[str] = None
-    destination_bucket_name: Optional[str] = None
     error_stage: str = None
     error_desc: str = None
     response_status_code: str
     log_timestamp: str
-    log_type: str = "ENCRYPTOR_LOG"
 
 
 class GcsToPubsubEvent(BaseModel):
