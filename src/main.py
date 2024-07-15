@@ -1,6 +1,7 @@
 import json
-import pendulum
 from datetime import datetime
+
+import pendulum
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -16,6 +17,8 @@ from error.custom_exceptions import (
     InternalAPIException
 )
 from gcp.pubsub import PubSubPublisher
+from helper.utils import decode_pubsub_message_data, extract_trace_and_request_type, \
+    format_pydantic_validation_error_message, create_pydantic_validation_error_message
 from pydantic_model.api_model import (
     Message,
     StatusLog,
@@ -23,8 +26,6 @@ from pydantic_model.api_model import (
     LogStatus,
 )
 from service.logger import CustomLoggerAdapter, configure_logger
-from helper.utils import decode_pubsub_message_data, extract_trace_and_request_type, \
-    format_pydantic_validation_error_message, create_pydantic_validation_error_message
 
 logger = CustomLoggerAdapter(configure_logger(), None)
 
@@ -144,7 +145,6 @@ async def dead_letter_queue_exception_handler(
             message_id=pubsub_message["message_id"],
             status=LogStatus.FAILURE,
             source_bucket_name=pubsub_message["attributes"].get("bucketId", None),
-            destination_bucket_name=None,
             error_stage=exc.error_stage,
             error_desc=exc.error_desc,
             response_status_code="202",
@@ -178,7 +178,6 @@ async def reprocess_message_exception_handler(
             source_bucket_name=exc.original_request["message"]["attributes"].get(
                 "bucketId", None
             ),
-            destination_bucket_name=None,
             error_stage=exc.error_stage,
             error_desc=exc.error_desc,
             response_status_code="500",
